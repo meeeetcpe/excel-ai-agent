@@ -1,9 +1,5 @@
 {
   "name": "excel-ai-agent",
   "version": "1.0.0",
-  "description": "Excel AI Agent using Gemini API",
-  "scripts": {
-    "start": "vercel dev"
-  },
-  "license": "MIT"
+  "private": true
 }
