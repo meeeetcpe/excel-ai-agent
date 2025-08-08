@@ -11,7 +11,7 @@
     <Host Name="Workbook"/>
   </Hosts>
   <DefaultSettings>
-    <SourceLocation DefaultValue="https://YOUR_VERCEL_URL/index.html"/>
+    <SourceLocation DefaultValue="https://excel-ai-agent-mt8d.vercel.app/index.html"/>
   </DefaultSettings>
   <Permissions>ReadWriteDocument</Permissions>
 </OfficeApp>
