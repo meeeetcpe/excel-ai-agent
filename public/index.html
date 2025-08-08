@@ -1,21 +1,56 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
 <head>
-    <meta charset="utf-8" />
-    <title>Excel AI Agent</title>
-    <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
-    <link rel="stylesheet" href="styles.css">
+  <meta charset="utf-8" />
+  <title>Excel AI Agent</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding:12px; max-width:720px }
+    label { font-weight:600; display:block; margin-top:8px }
+    textarea, select, input[type="text"] { width:100%; box-sizing:border-box; margin-top:6px; padding:8px }
+    .row { display:flex; gap:8px; align-items:center }
+    button { margin-top:12px; padding:8px 12px; cursor:pointer }
+    #status { margin-top:10px; white-space:pre-wrap; background:#f7f7f7; padding:8px; border-radius:6px; min-height:36px }
+  </style>
 </head>
 <body>
-    <h2>Excel AI Agent</h2>
-    <label>Prompt:</label><br>
-    <textarea id="promptInput" rows="4" cols="40"></textarea><br><br>
-    
-    <button id="runBtn">Run AI</button>
-    <br><br>
-    <label>Output:</label><br>
-    <textarea id="output" rows="6" cols="40" readonly></textarea>
+  <h2>Excel AI Agent</h2>
 
-    <script src="ask.js"></script>
+  <label>Prompt</label>
+  <textarea id="prompt" rows="5" placeholder="e.g. Summarize columns and return a CSV of top 5 customers by Sales"></textarea>
+
+  <label>Data source</label>
+  <select id="dataSource">
+    <option value="selection">Use current selection</option>
+    <option value="namedTables">Select table</option>
+    <option value="manualRange">Manual range (Sheet1!A1:C10)</option>
+  </select>
+
+  <div id="tableChooser" style="display:none; margin-top:6px;">
+    <label>Tables in workbook</label>
+    <select id="tableList"></select>
+  </div>
+
+  <div id="manualRangeBox" style="display:none; margin-top:6px;">
+    <label>Manual range</label>
+    <input id="pasteRangeInput" type="text" placeholder="e.g. Sheet1!A1 or Sheet1!A1:C10" />
+  </div>
+
+  <label>
+    <input id="newSheet" type="checkbox" /> Write output into a new worksheet
+  </label>
+
+  <label>Paste location (leave blank to overwrite selection or if using new sheet)</label>
+  <input id="pasteRange" type="text" placeholder="e.g. Sheet1!E1 or A1" />
+
+  <div style="margin-top:8px">
+    <button id="runBtn">Run</button>
+    <button id="refreshTablesBtn" style="margin-left:8px">Refresh table list</button>
+  </div>
+
+  <div id="status">Status: idle</div>
+
+  <script src="frontend.js"></script>
 </body>
 </html>
