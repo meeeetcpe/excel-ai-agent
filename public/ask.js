@@ -1,44 +1,65 @@
-async function callGemini(prompt, tableData) {
-    const API_KEY = "AIzaSyD_F5y16ZA1Zd1m33anlfZVj-ortAs_ifQ"; // your key
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${API_KEY}`;
+// api/ask.js  (Node 18+ on Vercel)
+import fetch from 'node-fetch';
 
-    const requestBody = {
-        contents: [{
-            parts: [{
-                text: `You are an Excel AI assistant. 
-                Prompt: ${prompt} 
-                Data: ${JSON.stringify(tableData)}`
-            }]
-        }]
+export default async function handler(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Only POST allowed' });
+  const { prompt, tableData } = req.body || {};
+  if (!prompt) return res.status(400).json({ error: 'Missing prompt' });
+
+  const API_KEY = process.env.GEMINI_API_KEY;
+  if (!API_KEY) return res.status(500).json({ error: 'Server missing GEMINI_API_KEY env' });
+
+  try {
+    // Shorten table data if too big, send first N rows only (adjust N)
+    const maxRows = 200;
+    const inputSample = (tableData && tableData.values) ? tableData.values.slice(0, maxRows) : [];
+
+    // System instructions to get clean CSV/JSON results when needed
+    const systemPrompt = `You are an expert spreadsheet assistant. Input is a JSON array-of-arrays (rows). The user prompt follows. If the user asks for a table, **output only CSV** (no explanation). If user asks for JSON, output only JSON (array-of-arrays or array-of-objects). Otherwise return plain text.`;
+
+    // Build request body for Gemini-ish API. Replace if your provider differs.
+    const body = {
+      // Example for Google Generative Language (edit if your provider differs)
+      prompt: {
+        text: `${systemPrompt}\n\nTable sample (first ${inputSample.length} rows):\n${JSON.stringify(inputSample)}\n\nUser request:\n${prompt}`
+      }
+      // If your provider requires a different shape, replace above with required fields.
     };
 
-    const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody)
+    // Example endpoint (replace if your provider uses different URL)
+    // Many Google examples use: https://generativelanguage.googleapis.com/v1beta2/models/{model}:generate
+    const model = process.env.LLM_MODEL || 'models/text-bison-001'; // change if needed
+    const endpoint = process.env.LLM_ENDPOINT || `https://generativelanguage.googleapis.com/v1beta2/${model}:generate?key=${API_KEY}`;
+
+    const r = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
     });
 
-    if (!res.ok) {
-        throw new Error(`Gemini API error: ${await res.text()}`);
+    if (!r.ok) {
+      const t = await r.text();
+      console.error('LLM error', r.status, t);
+      return res.status(502).json({ error: 'LLM error', details: t });
     }
 
-    const data = await res.json();
-    return data.candidates[0].content.parts[0].text;
+    const parsed = await r.json();
+
+    // Extract text candidate - adapt based on actual provider response
+    // For Google: parsed.candidates[0].content[0].text or parsed.output[0].content[0].text
+    let answer = '';
+    if (parsed.candidates && parsed.candidates[0] && parsed.candidates[0].content) {
+      answer = parsed.candidates[0].content.map(c => c.text || c).join('\n');
+    } else if (parsed.output && parsed.output[0] && parsed.output[0].content) {
+      // alternative shape
+      answer = parsed.output[0].content.map(c => c.text || c).join('\n');
+    } else {
+      answer = JSON.stringify(parsed);
+    }
+
+    return res.json({ success: true, answer });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: err.message });
+  }
 }
-
-// Example: Get selected table in Excel
-async function runAgent() {
-    await Excel.run(async (context) => {
-        const range = context.workbook.getSelectedRange();
-        range.load("values");
-        await context.sync();
-
-        const prompt = document.getElementById("promptInput").value;
-        const tableData = range.values;
-
-        const output = await callGemini(prompt, tableData);
-        document.getElementById("output").value = output;
-    });
-}
-
-document.getElementById("runBtn").addEventListener("click", runAgent);
